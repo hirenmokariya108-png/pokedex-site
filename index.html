@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" id="metaDescription"
+        content="The Advanced Pokédex — Search any Pokémon, see stats, shiny forms, cries, and evolutions" />
+    <title id="pageTitle">The Advanced Pokédex</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet" />
+
+    <!-- Chart.js for Radar Stats -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* =============================================
+           Advanced Pokédex — Master Styles
+           ============================================= */
+        :root {
+            --bg: #080914;
+            --surface: rgba(19, 22, 42, 0.75);
+            --surface-2: rgba(31, 36, 69, 0.85);
+            --surface-3: rgba(43, 49, 84, 0.9);
+            --border: rgba(255, 255, 255, .1);
+            --border-2: rgba(255, 255, 255, .2);
+            --text: #f1f3f9;
+            --text-muted: #8b94b0;
+            --text-dark: #080914;
+
+            /* Dynamic Accent Color (Defaults to Cyan) */
+            --accent: #3498db;
+            --accent-glow: color-mix(in srgb, var(--accent) 40%, transparent);
+
+            --font-sans: 'Outfit', sans-serif;
+            --font-mono: 'Space Mono', monospace;
+            --radius: 24px;
+            --ease: .3s cubic-bezier(.4, 0, .2, 1);
+
+            /* Type Colors */
+            --t-normal: #A8A77A; --t-fire: #EE8130; --t-water: #6390F0; --t-electric: #F7D02C;
+            --t-grass: #7AC74C; --t-ice: #96D9D6; --t-fighting: #C22E28; --t-poison: #A33EA1;
+            --t-ground: #E2BF65; --t-flying: #A98FF3; --t-psychic: #F95587; --t-bug: #A6B91A;
+            --t-rock: #B6A136; --t-ghost: #735797; --t-dragon: #6F35FC; --t-dark: #705848;
+            --t-steel: #B7B7CE; --t-fairy: #D685AD;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        html, body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 24px 16px;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .hidden { display: none !important; }
+
+        /* ── Background Orbs ── */
+        .bg-orbs {
+            position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+        }
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(100px); opacity: .15;
+            animation: float 20s infinite alternate ease-in-out;
+            transition: background 1s ease;
+        }
+        .orb-1 { width: 40vw; height: 40vw; background: var(--accent); top: -10vw; left: -10vw; }
+        .orb-2 { width: 35vw; height: 35vw; background: #2980b9; bottom: -5vw; right: -10vw; animation-delay: -5s; }
+        .orb-3 { width: 25vw; height: 25vw; background: #f7b731; top: 30%; left: 40%; animation-delay: -10s; }
+        
+        @keyframes float { 100% { transform: translate(30px, 40px) scale(1.1); } }
+
+        /* ── App Container & Glassmorphism ── */
+        .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px; perspective: 1000px; }
+        
+        .glass-panel {
+            background: var(--surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, .4), inset 0 0 0 1px rgba(255,255,255,0.05);
+        }
+
+        /* ── Header ── */
+        .header { padding: 24px; display: flex; flex-direction: column; gap: 16px; position: relative; z-index: 20; transition: border-color 0.5s ease; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        
+        .logo { display: flex; align-items: center; gap: 14px; }
+        .dex-lens {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff, var(--accent));
+            border: 4px solid var(--surface-3);
+            box-shadow: 0 0 16px var(--accent-glow), inset 0 0 8px rgba(0, 0, 0, .5);
+            position: relative; overflow: hidden;
+            transition: background 0.5s ease, box-shadow 0.5s ease;
+        }
+        .lens-glare {
+            position: absolute; top: 15%; left: 15%; width: 30%; height: 30%;
+            background: #fff; border-radius: 50%; filter: blur(2px); opacity: .7;
+        }
+        .logo h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: 1px; color: #fff; }
+        
+        .icon-btn {
+            background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);
+            width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all var(--ease);
+        }
+        .icon-btn:hover { background: var(--accent-glow); color: var(--accent); border-color: var(--accent); }
+
+        /* Search Bar */
+        .search-wrapper { position: relative; width: 100%; }
+        .search-bar {
+            display: flex; align-items: center; gap: 10px; background: var(--surface-2);
+            border: 1.5px solid var(--border); border-radius: 14px; padding: 6px 6px 6px 14px;
+            transition: border-color var(--ease), box-shadow var(--ease);
+        }
+        .search-bar:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .search-icon { color: var(--text-muted); flex-shrink: 0; }
+        .search-bar input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: var(--font-sans); font-size: 1rem; width: 100%; }
+        .search-bar input::placeholder { color: var(--text-muted); }
+        
+        .input-group { flex: 1; position: relative; display: flex; align-items: center; }
+        .clear-search {
+            position: absolute; right: 8px; background: rgba(255, 255, 255, 0.1); border: none; color: var(--text);
+            width: 20px; height: 20px; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--ease);
+        }
+        .clear-search:hover { background: rgba(255, 255, 255, 0.2); }
+        
+        .search-btn {
+            background: var(--accent); border: none; border-radius: 10px; padding: 8px 16px; color: #fff;
+            font-family: var(--font-sans); font-weight: 600; font-size: .9rem; cursor: pointer; transition: transform .2s ease, background 0.5s ease;
+        }
+        .search-btn:active { transform: scale(.95); }
+
+        /* Autocomplete Dropdown */
+        .suggestions {
+            position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: rgba(31, 36, 69, 0.95);
+            backdrop-filter: blur(12px); border: 1px solid var(--border-2); border-radius: 14px; padding: 6px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, .6); max-height: 240px; overflow-y: auto; z-index: 100; list-style: none; display: flex; flex-direction: column; gap: 2px;
+        }
+        .suggestions li { padding: 10px 14px; border-radius: 8px; cursor: pointer; color: var(--text); font-size: .95rem; text-transform: capitalize; display: flex; justify-content: space-between; align-items: center; }
+        .suggestions li:hover, .suggestions li.active { background: var(--accent-glow); color: #fff; }
+        .suggest-id { color: var(--text-muted); font-family: var(--font-mono); font-size: .8rem; }
+
+        /* Quick Chips */
+        .quick-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .chip {
+            background: var(--surface-2); border: 1px solid var(--border); border-radius: 99px; padding: 6px 14px;
+            color: var(--text-muted); font-family: var(--font-sans); font-size: .8rem; font-weight: 500; cursor: pointer; transition: all var(--ease);
+        }
+        .chip:hover { background: var(--accent-glow); color: var(--accent); border-color: var(--accent); }
+
+        /* ── Main Card (Holographic Tilt) ── */
+        .main {
+            padding: 28px 24px; position: relative; overflow: visible; min-height: 480px;
+            transform-style: preserve-3d; transition: transform 0.1s ease-out, border-color 0.5s ease;
+            will-change: transform;
+        }
+
+        /* States */
+        .state-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; text-align: center; gap: 16px; color: var(--text-muted); }
+        .spinner { width: 44px; height: 44px; border: 4px solid var(--border-2); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-icon { font-size: 3rem; margin-bottom: 8px; }
+        .state-view h2 { color: var(--text); font-size: 1.2rem; }
+        .retry-btn { margin-top: 12px; background: var(--surface-3); border: none; padding: 10px 20px; border-radius: 12px; color: var(--text); font-family: inherit; font-weight: 600; cursor: pointer; transition: background var(--ease); }
+        .retry-btn:hover { background: var(--accent-glow); color: var(--accent); }
+
+        /* Skeleton Loading */
+        .skeleton-view { display: flex; flex-direction: column; gap: 16px; height: auto; width: 100%; align-items: stretch; }
+        .skel-box { background: var(--surface-2); border-radius: 8px; position: relative; overflow: hidden; }
+        .skel-box::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent); animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        .skel-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .skel-btn { width: 80px; height: 30px; border-radius: 99px; } .skel-id { width: 40px; height: 20px; }
+        .skel-header { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .skel-title { width: 140px; height: 36px; border-radius: 6px; } .skel-subtitle { width: 100px; height: 16px; border-radius: 4px; }
+        .skel-hero { width: 100%; aspect-ratio: 16/11; display: flex; justify-content: center; align-items: center; margin: 10px 0; }
+        .skel-img { width: 60%; height: 80%; border-radius: 50%; opacity: 0.5; }
+        .skel-types { display: flex; justify-content: center; gap: 8px; } .skel-badge { width: 70px; height: 28px; border-radius: 99px; }
+        .skel-metrics { display: flex; justify-content: space-evenly; gap: 10px; margin: 16px 0; } .skel-metric { flex: 1; height: 50px; border-radius: 12px; }
+        .skel-tabs { display: flex; gap: 4px; margin-bottom: 12px; } .skel-tab { flex: 1; height: 38px; border-radius: 10px; }
+        .skel-content { width: 100%; height: 200px; } .skel-chart { width: 100%; height: 100%; border-radius: 16px; }
+
+        /* ── Result View ── */
+        .result-view { animation: fadeUp .4s var(--ease); display: flex; flex-direction: column; gap: 20px; transform: translateZ(20px); }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Top Nav */
+        .poke-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: -10px; position: relative; z-index: 5; }
+        .nav-btn { background: var(--surface-2); border: none; border-radius: 99px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-family: var(--font-sans); font-weight: 600; font-size: .8rem; cursor: pointer; transition: background var(--ease), color var(--ease); }
+        .nav-btn:hover { background: var(--accent-glow); color: var(--accent); }
+        .nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+        .poke-id { font-family: var(--font-mono); font-weight: 700; font-size: 1.1rem; color: rgba(255, 255, 255, .3); }
+
+        /* Header */
+        .poke-header { text-align: center; }
+        .poke-header h2 { font-size: 2.2rem; text-transform: capitalize; font-weight: 800; letter-spacing: -0.5px; }
+        .poke-header p { color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+
+        /* Hero / Image (CLS Fixed) */
+        .poke-hero {
+            position: relative; width: 100%; aspect-ratio: 16/11; min-height: 200px; 
+            display: flex; justify-content: center; align-items: center; margin: 10px 0;
+            transform-style: preserve-3d;
+        }
+        .hero-bg {
+            position: absolute; inset: 0; border-radius: 20px;
+            background: radial-gradient(circle at 50% 50%, var(--accent) 0%, transparent 70%);
+            opacity: .2; transition: background 0.6s ease; transform: translateZ(-10px);
+        }
+        .poke-img {
+            width: 70%; height: 100%; object-fit: contain; position: relative; z-index: 2;
+            filter: drop-shadow(0 16px 24px rgba(0, 0, 0, .5));
+            transition: transform .4s cubic-bezier(.34, 1.56, .64, 1), filter .4s ease, opacity .3s ease;
+            transform: translateZ(30px); /* 3D pop effect */
+        }
+        .poke-img:hover { transform: translateZ(50px) translateY(-8px) scale(1.05); filter: drop-shadow(0 24px 32px rgba(0, 0, 0, .6)); }
+        .poke-img.loading { opacity: 0; transform: translateZ(0) scale(.9); }
+
+        /* Tools */
+        .poke-tools { position: absolute; right: 8px; top: 8px; z-index: 5; display: flex; flex-direction: column; gap: 8px; transform: translateZ(20px); }
+        .tool-btn {
+            width: 40px; height: 40px; border-radius: 12px; background: rgba(19, 22, 42, .6); backdrop-filter: blur(8px);
+            border: 1px solid var(--border-2); color: #fff; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .2s ease, background .2s ease;
+        }
+        .tool-btn:hover { background: rgba(255, 255, 255, .1); }
+        .tool-btn:active { transform: scale(.9); }
+        .tool-btn.active-shiny { background: rgba(247, 183, 49, .2); border-color: rgba(247, 183, 49, .5); box-shadow: 0 0 12px rgba(247, 183, 49, .3); }
+        .tool-btn.playing { animation: bounce .4s alternate; background: var(--accent-glow); border-color: var(--accent); }
+        @keyframes bounce { to { transform: scale(1.15); } }
+
+        /* Types & Badges */
+        .poke-types { display: flex; justify-content: center; gap: 8px; }
+        .type-badge {
+            padding: 6px 16px; border-radius: 99px; font-size: .85rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .4); box-shadow: 0 4px 10px rgba(0, 0, 0, .2);
+        }
+
+        .flavor-text { text-align: center; font-size: .95rem; line-height: 1.5; color: var(--text); padding: 0 10px; font-style: italic; opacity: .9; }
+
+        /* Metrics */
+        .metrics {
+            display: flex; justify-content: space-evenly; align-items: stretch; background: var(--surface-2);
+            border: 1px solid var(--border); border-radius: 16px; padding: 16px 10px; margin: 8px 0;
+        }
+        .m-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; flex: 1; text-align: center; }
+        .m-val { font-weight: 700; font-size: 1.05rem; line-height: 1.2; text-transform: capitalize; }
+        .m-label { font-size: .7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 1px; }
+        .m-divider { width: 1px; background: var(--border-2); margin: 0 4px; }
+
+        /* ── Tabs ── */
+        .tabs { display: flex; background: var(--surface-2); border-radius: 14px; padding: 4px; border: 1px solid var(--border); }
+        .tab-btn {
+            flex: 1; background: transparent; border: none; border-radius: 10px; padding: 10px; color: var(--text-muted);
+            font-family: var(--font-sans); font-weight: 600; font-size: .9rem; cursor: pointer; transition: all var(--ease);
+        }
+        .tab-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); }
+        .tab-content { display: none; padding: 12px 0 0 0; animation: fadeUp .3s var(--ease); }
+        .tab-content.scrollable { max-height: 380px; overflow-y: auto; padding-right: 4px; }
+        .tab-content.scrollable::-webkit-scrollbar, .moves-list::-webkit-scrollbar, .type-grid::-webkit-scrollbar, .locs-list::-webkit-scrollbar { width: 6px; }
+        .tab-content.scrollable::-webkit-scrollbar-track, .moves-list::-webkit-scrollbar-track, .type-grid::-webkit-scrollbar-track, .locs-list::-webkit-scrollbar-track { background: var(--surface); border-radius: 10px; }
+        .tab-content.scrollable::-webkit-scrollbar-thumb, .moves-list::-webkit-scrollbar-thumb, .type-grid::-webkit-scrollbar-thumb, .locs-list::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+        .tab-content.active { display: block; }
+
+        /* Content Specifics */
+        .chart-container { position: relative; width: 100%; height: 260px; display: flex; justify-content: center; }
+        .stat-total { text-align: center; margin-top: 10px; font-size: .9rem; color: var(--text-muted); } .stat-total strong { color: var(--accent); font-size: 1.1rem; }
+        
+        .evo-chain { display: flex; align-items: center; justify-content: center; padding: 16px 0; overflow-x: auto; width: 100%; }
+        .evo-chain.loaded-tree { gap: 0; flex-wrap: nowrap; }
+        .evo-stage-group { display: flex; align-items: center; } .evo-branches { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+        .evo-stage { display: flex; align-items: center; }
+        .evo-node { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: transform var(--ease); }
+        .evo-node:hover { transform: scale(1.08); }
+        .evo-img { width: 64px; height: 64px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border-2); padding: 6px; transition: border-color var(--ease); }
+        .evo-node.active .evo-img { border-color: var(--accent); background: var(--accent-glow); }
+        .evo-name { font-size: .8rem; font-weight: 600; text-transform: capitalize; color: var(--text-muted); }
+        .evo-node.active .evo-name { color: var(--accent); }
+        .evo-arrow { color: var(--text-muted); font-size: 1.2rem; opacity: .5; }
+
+        .section-title { font-size: .8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 12px; letter-spacing: 1px; }
+        .mt-3 { margin-top: 24px; }
+        .weak-grip { display: flex; flex-wrap: wrap; gap: 8px; }
+        .weak-pill { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--type-bg); border-radius: 8px; padding: 6px 12px; font-size: .85rem; font-weight: 600; text-transform: capitalize; min-width: 120px; }
+        .mult { font-family: var(--font-mono); font-weight: 700; color: rgba(255, 255, 255, .6); }
+
+        .poke-varieties { display: flex; justify-content: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .variety-btn { background: var(--surface-2); border: 1px solid var(--border); border-radius: 99px; padding: 4px 12px; color: var(--text-muted); font-size: .75rem; font-weight: 600; text-transform: capitalize; cursor: pointer; transition: all var(--ease); }
+        .variety-btn:hover { background: var(--accent-glow); color: var(--text); border-color: var(--accent); }
+        .variety-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+
+        .moves-container { background: var(--surface-2); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; max-height: 280px; }
+        .moves-header { display: flex; padding: 8px 12px; background: var(--surface-3); font-size: .75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .moves-header span:first-child { width: 40px; } .moves-header span:last-child { flex: 1; text-align: left; }
+        .moves-list { overflow-y: auto; display: flex; flex-direction: column; }
+        .move-row { display: flex; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: .85rem; align-items: center; }
+        .move-row:last-child { border-bottom: none; } .move-row:hover { background: var(--accent-glow); }
+        .move-lvl { width: 40px; font-family: var(--font-mono); color: var(--text-muted); font-size: .8rem; }
+        .move-name { flex: 1; font-weight: 600; text-transform: capitalize; }
+
+        .locs-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
+        .loc-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; border-left: 3px solid var(--accent); }
+        .loc-name { font-weight: 600; font-size: .9rem; text-transform: capitalize; }
+        .loc-meta { font-size: .75rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; }
+        .loc-version-tag { background: var(--surface-3); border-radius: 4px; padding: 2px 7px; font-size: .68rem; font-weight: 600; text-transform: capitalize; color: var(--text-muted); }
+        .locs-empty { text-align: center; color: var(--text-muted); font-size: .9rem; padding: 24px 0; opacity: .75; }
+
+        /* ── Drawers & Modals (Glassmorphism) ── */
+        .drawer-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); backdrop-filter: blur(8px); z-index: 100; transition: opacity var(--ease); }
+        .drawer-overlay.hidden { opacity: 0; pointer-events: none; }
+        .drawer {
+            position: absolute; right: 0; top: 0; bottom: 0; width: 340px; max-width: 85vw;
+            background: var(--surface); backdrop-filter: blur(20px); border-left: 1px solid var(--border);
+            display: flex; flex-direction: column; transform: translateX(100%); transition: transform var(--ease); box-shadow: -10px 0 40px rgba(0, 0, 0, .5);
+        }
+        .drawer-overlay:not(.hidden) .drawer { transform: translateX(0); }
+        .drawer-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--border); }
+        .drawer-header h3 { font-size: 1.1rem; font-weight: 700; }
+        .drawer-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+        
+        .history-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: background var(--ease); }
+        .history-item:hover { background: var(--accent-glow); border-color: var(--accent); }
+        .hi-img { width: 40px; height: 40px; border-radius: 8px; background: rgba(0, 0, 0, .2); object-fit: contain; }
+        .hi-info { display: flex; flex-direction: column; } .hi-name { font-weight: 600; text-transform: capitalize; font-size: .95rem; } .hi-id { font-family: var(--font-mono); font-size: .75rem; color: var(--text-muted); }
+        .empty-hist { text-align: center; color: var(--text-muted); margin-top: 40px; font-size: .9rem; }
+        .drawer-footer { padding: 16px; border-top: 1px solid var(--border); }
+        .clear-btn { width: 100%; background: rgba(227, 53, 13, .15); border: 1px solid rgba(227, 53, 13, .3); color: var(--red); padding: 12px; border-radius: 12px; font-weight: 600; font-family: var(--font-sans); cursor: pointer; transition: all var(--ease); }
+        .clear-btn:hover { background: rgba(227, 53, 13, .3); }
+
+        .type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; padding-bottom: 20px; }
+        .tp-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; cursor: pointer; transition: all var(--ease); }
+        .tp-card:hover { background: var(--accent-glow); transform: translateY(-2px); border-color: var(--accent); }
+        .tp-img { width: 48px; height: 48px; object-fit: contain; margin-bottom: 4px; }
+        .tp-name { font-size: .7rem; font-weight: 600; text-transform: capitalize; color: var(--text-muted); text-align: center; }
+
+        /* Abilities */
+        .ability-chips { display: flex; flex-direction: column; gap: 5px; align-items: center; }
+        .ability-chip { background: var(--surface-3); border: 1px solid var(--border-2); border-radius: 8px; padding: 4px 10px; color: var(--text); font-family: var(--font-sans); font-weight: 600; font-size: .78rem; text-transform: capitalize; cursor: pointer; transition: all var(--ease); }
+        .ability-chip:hover { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+        .ability-body { display: flex; flex-direction: column; gap: 20px; }
+        .ability-short { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; font-size: .95rem; line-height: 1.6; border-left: 4px solid var(--accent); }
+        .ability-full { font-size: .9rem; line-height: 1.7; color: var(--text-muted); }
+        .ability-label { font-size: .7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+        .ability-hidden-tag { display: inline-block; background: rgba(247, 183, 49, .15); border: 1px solid rgba(247, 183, 49, .4); color: #f7b731; font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: .5px; margin-left: 6px; }
+
+        /* Compare Mode */
+        .compare-toggle-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 14px var(--accent-glow); }
+        .compare-section { display: none; flex-direction: column; gap: 20px; padding: 24px; margin-top: 10px; animation: fadeUp .4s var(--ease); }
+        .compare-section.visible { display: flex; }
+        .compare-header { display: flex; justify-content: space-between; align-items: center; }
+        .compare-title { display: flex; align-items: center; gap: 10px; } .compare-title-icon { font-size: 1.3rem; }
+        .compare-title h2 { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+        .compare-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .compare-panel { background: var(--surface-2); border: 1px solid var(--border); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: border-color var(--ease); min-height: 160px; }
+        .compare-panel:focus-within { border-color: var(--accent); }
+        .cp-search { display: flex; gap: 8px; }
+        .cp-input { flex: 1; background: var(--surface-3); border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 12px; color: var(--text); font-family: var(--font-sans); font-size: .85rem; outline: none; transition: border-color var(--ease); min-width: 0; }
+        .cp-input:focus { border-color: var(--accent); }
+        .cp-btn { background: var(--accent); border: none; border-radius: 10px; padding: 8px 14px; color: #fff; font-family: var(--font-sans); font-weight: 700; font-size: .85rem; cursor: pointer; transition: opacity .2s ease; }
+        .cp-btn:hover { opacity: .88; }
+        .cp-body { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
+        .cp-empty { color: var(--text-muted); font-size: .8rem; text-align: center; margin: auto; opacity: .7; }
+        .cp-loading { width: 28px; height: 28px; border: 3px solid var(--border-2); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: auto; }
+        .cp-hero-img { width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .5)); transition: transform .4s ease; }
+        .cp-hero-img:hover { transform: translateY(-4px) scale(1.06); }
+        .cp-name { font-size: 1rem; font-weight: 800; text-transform: capitalize; text-align: center; }
+        .cp-id { font-family: var(--font-mono); font-size: .75rem; color: var(--text-muted); margin-top: -6px; }
+        .cp-types { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+        .cp-type-badge { padding: 3px 10px; border-radius: 99px; font-size: .72rem; font-weight: 700; text-transform: uppercase; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+        .cp-metrics { display: flex; gap: 12px; justify-content: center; font-size: .75rem; color: var(--text-muted); flex-wrap: wrap; }
+        .cp-metric strong { color: var(--text); font-weight: 700; }
+        .compare-chart-area { background: var(--surface-2); border: 1px solid var(--border); border-radius: 18px; padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; min-height: 100px; }
+        .cmp-chart-placeholder { text-align: center; color: var(--text-muted); font-size: .88rem; padding: 20px 0; opacity: .75; }
+        .cmp-chart-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; animation: fadeUp .4s var(--ease); }
+        .cmp-legend { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+        .cmp-legend-item { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 600; text-transform: capitalize; }
+        .cmp-legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
+        .cmp-canvas-container { position: relative; width: 100%; height: 270px; }
+        .cmp-totals { font-size: .82rem; color: var(--text-muted); text-align: center; line-height: 1.6; }
+
+        /* Feature: Filter Panel */
+        .filter-panel { background: var(--surface-2); border: 1px solid var(--border); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 14px; animation: fadeUp .3s var(--ease); margin-top: 4px; }
+        .filter-row { display: flex; flex-direction: column; gap: 14px; }
+        .filter-section { display: flex; flex-direction: column; gap: 8px; }
+        .filter-label { font-size: .7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 2px; }
+        .filter-type-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+        .ftype-pill { padding: 4px 10px; border-radius: 99px; font-size: .72rem; font-weight: 700; text-transform: uppercase; color: rgba(255, 255, 255, .7); border: 1.5px solid transparent; cursor: pointer; transition: all .2s ease; opacity: .65; }
+        .ftype-pill:hover, .ftype-pill.selected { opacity: 1; border-color: rgba(255, 255, 255, .5); color: #fff; transform: translateY(-1px); }
+        .filter-gen-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+        .fgen-btn { background: var(--surface-3); border: 1.5px solid var(--border); border-radius: 8px; padding: 5px 10px; color: var(--text-muted); font-size: .78rem; font-weight: 600; cursor: pointer; transition: all var(--ease); }
+        .fgen-btn:hover, .fgen-btn.selected { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+        .filter-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border); gap: 10px; flex-wrap: wrap; }
+        .filter-sort-sel { background: var(--surface-3); border: 1px solid var(--border-2); border-radius: 8px; color: var(--text); padding: 6px 10px; cursor: pointer; outline: none; }
+        .flt-clear-btn { background: transparent; border: 1px solid var(--border-2); border-radius: 10px; padding: 8px 14px; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all var(--ease); }
+        .flt-clear-btn:hover { background: var(--surface-3); color: var(--text); }
+        #filterBtn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+
+        /* Favorites */
+        .poke-name-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .fav-btn { background: none; border: none; font-size: 1.6rem; color: var(--text-muted); cursor: pointer; transition: color .2s ease, transform .2s ease; display: flex; align-items: center; }
+        .fav-btn:hover { color: #f95587; transform: scale(1.2); }
+        .fav-btn.active { color: #f95587; animation: heartPop .3s ease; }
+        @keyframes heartPop { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+
+        /* Responsive */
+        @media (max-width: 520px) {
+            .app-container { padding: 0; gap: 12px; max-width: 100%; }
+            html, body { padding: 12px 10px; }
+            .header, .main, .compare-section { border-radius: 20px; padding: 20px 16px; }
+            .poke-header h2 { font-size: 1.8rem; }
+            .chart-container, .cmp-canvas-container { height: 220px; }
+            .compare-panels { grid-template-columns: 1fr; }
+            .tab-btn { font-size: .75rem; padding: 8px 6px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="app-container">
+
+        <!-- ── Header & Search ── -->
+        <header class="header glass-panel">
+            <div class="header-top">
+                <div class="logo">
+                    <div class="dex-lens"><div class="lens-glare"></div></div>
+                    <h1>Pokédex</h1>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button id="filterBtn" class="icon-btn" title="Filter & Sort" aria-label="Filter">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" /></svg>
+                    </button>
+                    <button id="compareToggleBtn" class="icon-btn compare-toggle-btn" title="Compare Mode" aria-label="Compare Mode">⚔</button>
+                    <button id="favoritesBtn" class="icon-btn" title="My Favorites" aria-label="My Favorites">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                    </button>
+                    <button id="historyBtn" class="icon-btn" title="Recent Searches" aria-label="Recent Searches">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="search-wrapper">
+                <div class="search-bar">
+                    <svg class="search-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <div class="input-group">
+                        <input type="text" id="searchInput" placeholder="Search name or ID (e.g. 25, pikachu)" autocomplete="off" spellcheck="false" />
+                        <button id="clearSearchBtn" class="clear-search hidden" aria-label="Clear Search">✕</button>
+                    </div>
+                    <button id="searchBtn" class="search-btn">Search</button>
+                    <button id="randomBtn" class="icon-btn" title="Random Pokémon" aria-label="Random Pokémon">🎲</button>
+                </div>
+                <ul id="suggestionsList" class="suggestions hidden" role="listbox"></ul>
+            </div>
+
+            <div class="quick-chips">
+                <button class="chip" data-id="1">Bulbasaur</button>
+                <button class="chip" data-id="6">Charizard</button>
+                <button class="chip" data-id="133">Eevee</button>
+                <button class="chip" data-id="448">Lucario</button>
+            </div>
+
+            <div id="filterPanel" class="filter-panel hidden">
+                <div class="filter-row">
+                    <div class="filter-section">
+                        <p class="filter-label">Filter by Type</p>
+                        <div class="filter-type-pills" id="filterTypePills"></div>
+                    </div>
+                    <div class="filter-section">
+                        <p class="filter-label">Generation</p>
+                        <div class="filter-gen-btns" id="filterGenBtns">
+                            <button class="fgen-btn" data-gen="1" data-min="1" data-max="151">Gen I</button>
+                            <button class="fgen-btn" data-gen="2" data-min="152" data-max="251">Gen II</button>
+                            <button class="fgen-btn" data-gen="3" data-min="252" data-max="386">Gen III</button>
+                            <button class="fgen-btn" data-gen="4" data-min="387" data-max="493">Gen IV</button>
+                            <button class="fgen-btn" data-gen="5" data-min="494" data-max="649">Gen V</button>
+                            <button class="fgen-btn" data-gen="6" data-min="650" data-max="721">Gen VI</button>
+                            <button class="fgen-btn" data-gen="7" data-min="722" data-max="809">Gen VII</button>
+                            <button class="fgen-btn" data-gen="8" data-min="810" data-max="905">Gen VIII</button>
+                            <button class="fgen-btn" data-gen="9" data-min="906" data-max="1025">Gen IX</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <label class="filter-label" style="margin:0">Sort</label>
+                        <select id="filterSort" class="filter-sort-sel">
+                            <option value="">By Number (#)</option>
+                            <option value="alpha">Alphabetical</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button id="clearFilterBtn" class="flt-clear-btn">Reset</button>
+                        <button id="applyFilterBtn" class="cp-btn">Show Results</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ── Main Card Area ── -->
+        <main class="main glass-panel" id="mainCard">
+
+            <!-- Loading & Error -->
+            <div id="loadingState" class="state-view skeleton-view">
+                <div class="skel-nav"><div class="skel-box skel-btn"></div><div class="skel-box skel-id"></div><div class="skel-box skel-btn"></div></div>
+                <div class="skel-header"><div class="skel-box skel-title"></div><div class="skel-box skel-subtitle"></div></div>
+                <div class="skel-hero"><div class="skel-box skel-img"></div></div>
+                <div class="skel-types"><div class="skel-box skel-badge"></div><div class="skel-box skel-badge"></div></div>
+                <div class="skel-metrics"><div class="skel-box skel-metric"></div><div class="skel-box skel-metric"></div><div class="skel-box skel-metric"></div></div>
+            </div>
+
+            <div id="errorState" class="state-view hidden">
+                <div class="error-icon">⚠️</div>
+                <h2 id="errorTitle">Pokémon not found</h2>
+                <p id="errorMsg">Check your spelling or ID number.</p>
+                <button id="errorRetryBtn" class="retry-btn">Clear Search</button>
+            </div>
+
+            <!-- Result State -->
+            <div id="resultState" class="result-view hidden" aria-live="polite">
+                <div class="poke-nav">
+                    <button id="prevBtn" class="nav-btn" aria-label="Previous Pokémon">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
+                        <span id="prevNum">#000</span>
+                    </button>
+                    <div class="poke-id" id="pokeId">#025</div>
+                    <button id="nextBtn" class="nav-btn" aria-label="Next Pokémon">
+                        <span id="nextNum">#000</span>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
+                    </button>
+                </div>
+
+                <div class="poke-header">
+                    <div class="poke-name-row">
+                        <h2 id="pokeName">Pikachu</h2>
+                        <button id="favBtn" class="fav-btn" title="Add to Favorites" aria-label="Favorite">&#9825;</button>
+                    </div>
+                    <p id="pokeGenus">Mouse Pokémon</p>
+                    <div class="poke-varieties" id="pokeVarieties"></div>
+                </div>
+
+                <div class="poke-hero">
+                    <div class="hero-bg" id="heroBg"></div>
+                    <div class="poke-tools">
+                        <button id="cryBtn" class="tool-btn" title="Play Cry (Audio)">🔊</button>
+                        <button id="shinyBtn" class="tool-btn" title="Toggle Shiny">✨</button>
+                        <button id="genderBtn" class="tool-btn hidden" title="Toggle Gender">⚥</button>
+                    </div>
+                    <img id="pokeImg" class="poke-img" src="" alt="Pokémon Artwork" crossorigin="anonymous" loading="eager" />
+                </div>
+
+                <div class="poke-types" id="pokeTypes"></div>
+                <p class="flavor-text" id="pokeFlavor"></p>
+
+                <div class="metrics">
+                    <div class="m-box"><span class="m-val" id="pokeHeight"></span><span class="m-label">Height</span></div>
+                    <div class="m-divider"></div>
+                    <div class="m-box"><span class="m-val" id="pokeWeight"></span><span class="m-label">Weight</span></div>
+                    <div class="m-divider"></div>
+                    <div class="m-box"><span class="m-val" id="pokeAbilities"></span><span class="m-label">Abilities</span></div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="stats">Stats</button>
+                    <button class="tab-btn" data-tab="evo">Evolutions</button>
+                    <button class="tab-btn" data-tab="weak">Weaknesses</button>
+                    <button class="tab-btn" data-tab="moves">Moves</button>
+                    <button class="tab-btn" data-tab="locs">Locations</button>
+                </div>
+
+                <div id="tab-stats" class="tab-content active">
+                    <div class="chart-container"><canvas id="statsChart"></canvas></div>
+                    <p class="stat-total">Total: <strong id="statTotal">0</strong></p>
+                </div>
+                <div id="tab-evo" class="tab-content"><div class="evo-chain" id="evoChain"></div></div>
+                <div id="tab-weak" class="tab-content">
+                    <p class="section-title">Takes 2× (or 4×) Damage From</p>
+                    <div class="weak-grip" id="weaknessList"></div>
+                    <p class="section-title mt-3">Takes 1/2× (or 1/4×) Damage From</p>
+                    <div class="weak-grip" id="resistanceList"></div>
+                </div>
+                <div id="tab-moves" class="tab-content">
+                    <div class="moves-container">
+                        <div class="moves-header"><span>Lvl.</span><span>Move Name</span></div>
+                        <div class="moves-list" id="movesList"></div>
+                    </div>
+                </div>
+                <div id="tab-locs" class="tab-content"><div class="locs-list" id="locsList"></div></div>
+            </div>
+        </main>
+
+        <!-- ── Compare Mode Section ── -->
+        <section id="compareSection" class="compare-section glass-panel" aria-label="Compare Mode">
+            <div class="compare-header">
+                <div class="compare-title"><span class="compare-title-icon">⚔</span><h2>Compare Mode</h2></div>
+                <button id="closeCompareBtn" class="icon-btn" aria-label="Close Compare">✕</button>
+            </div>
+            <div class="compare-panels">
+                <div class="compare-panel" id="comparePanelA">
+                    <div class="cp-search">
+                        <input type="text" id="compareInputA" class="cp-input" placeholder="Pokémon A…" autocomplete="off" spellcheck="false" />
+                        <button id="compareSearchBtnA" class="cp-btn">Go</button>
+                    </div>
+                    <div class="cp-body" id="cpBodyA"><div class="cp-empty">Search a Pokémon</div></div>
+                </div>
+                <div class="compare-panel" id="comparePanelB">
+                    <div class="cp-search">
+                        <input type="text" id="compareInputB" class="cp-input" placeholder="Pokémon B…" autocomplete="off" spellcheck="false" />
+                        <button id="compareSearchBtnB" class="cp-btn">Go</button>
+                    </div>
+                    <div class="cp-body" id="cpBodyB"><div class="cp-empty">Search a Pokémon</div></div>
+                </div>
+            </div>
+            <div class="compare-chart-area" id="compareChartArea">
+                <div class="cmp-chart-placeholder" id="cmpPlaceholder">Search two Pokémon above to see the stat comparison chart.</div>
+                <div class="cmp-chart-wrap hidden" id="cmpChartWrap">
+                    <div class="cmp-legend" id="cmpLegend"></div>
+                    <div class="cmp-canvas-container"><canvas id="compareChart"></canvas></div>
+                    <p class="cmp-totals" id="cmpTotals"></p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Drawers -->
+    <div id="historyDrawer" class="drawer-overlay hidden">
+        <div class="drawer">
+            <div class="drawer-header"><h3>Recent Searches</h3><button id="closeHistoryBtn" class="icon-btn">✕</button></div>
+            <div class="drawer-body" id="historyList"></div>
+            <div class="drawer-footer"><button id="clearHistoryBtn" class="clear-btn">Clear History</button></div>
+        </div>
+    </div>
+
+    <div id="typeDrawer" class="drawer-overlay hidden">
+        <div class="drawer">
+            <div class="drawer-header"><h3 id="typeModalTitle" style="text-transform: capitalize;">Type</h3><button id="closeTypeBtn" class="icon-btn">✕</button></div>
+            <div class="drawer-body"><div id="typeModalLoading" class="spinner" style="margin: 40px auto; display: none;"></div><div class="type-grid" id="typeModalBody"></div></div>
+        </div>
+    </div>
+
+    <div id="abilityDrawer" class="drawer-overlay hidden">
+        <div class="drawer">
+            <div class="drawer-header"><h3 id="abilityModalTitle" style="text-transform: capitalize;">Ability</h3><button id="closeAbilityBtn" class="icon-btn">✕</button></div>
+            <div class="drawer-body" id="abilityModalBody"></div>
+        </div>
+    </div>
+
+    <div id="favoritesDrawer" class="drawer-overlay hidden">
+        <div class="drawer">
+            <div class="drawer-header"><h3>&#9829; My Favorites</h3><button id="closeFavoritesBtn" class="icon-btn">✕</button></div>
+            <div class="drawer-body" id="favoritesList"></div>
+            <div class="drawer-footer"><button id="clearFavoritesBtn" class="clear-btn">Clear Favorites</button></div>
+        </div>
+    </div>
+
+    <div id="filterDrawer" class="drawer-overlay hidden">
+        <div class="drawer" style="width: 420px; max-width: 92vw;">
+            <div class="drawer-header"><h3 id="filterDrawerTitle">Results</h3><button id="closeFilterDrawerBtn" class="icon-btn">✕</button></div>
+            <div class="drawer-body"><div id="filterLoading" class="spinner" style="margin: 40px auto; display: none;"></div><div class="type-grid" id="filterResults"></div></div>
+        </div>
+    </div>
+
+    <script>
+        /* =============================================
+           Names Database (previously names.js)
+           ============================================= */
+        const POKEMON_NAMES = [
+            "bulbasaur", "ivysaur", "venusaur", "charmander", "charmeleon", "charizard", "squirtle", "wartortle", "blastoise",
+            "caterpie", "metapod", "butterfree", "weedle", "kakuna", "beedrill", "pidgey", "pidgeotto", "pidgeot", "rattata",
+            "raticate", "spearow", "fearow", "ekans", "arbok", "pikachu", "raichu", "sandshrew", "sandslash", "nidoran-f",
+            "nidorina", "nidoqueen", "nidoran-m", "nidorino", "nidoking", "clefairy", "clefable", "vulpix", "ninetales", "jigglypuff",
+            "wigglytuff", "zubat", "golbat", "oddish", "gloom", "vileplume", "paras", "parasect", "venonat", "venomoth", "diglett",
+            "dugtrio", "meowth", "persian", "psyduck", "golduck", "mankey", "primeape", "growlithe", "arcanine", "poliwag",
+            "poliwhirl", "poliwrath", "abra", "kadabra", "alakazam", "machop", "machoke", "machamp", "bellsprout", "weepinbell",
+            "victreebel", "tentacool", "tentacruel", "geodude", "graveler", "golem", "ponyta", "rapidash", "slowpoke", "slowbro",
+            "magnemite", "magneton", "farfetchd", "doduo", "dodrio", "seel", "dewgong", "grimer", "muk", "shellder", "cloyster",
+            "gastly", "haunter", "gengar", "onix", "drowzee", "hypno", "krabby", "kingler", "voltorb", "electrode", "exeggcute",
+            "exeggutor", "cubone", "marowak", "hitmonlee", "hitmonchan", "lickitung", "koffing", "weezing", "rhyhorn", "rhydon",
+            "chansey", "tangela", "kangaskhan", "horsea", "seadra", "goldeen", "seaking", "staryu", "starmie", "mr-mime", "scyther",
+            "jynx", "electabuzz", "magmar", "pinsir", "tauros", "magikarp", "gyarados", "lapras", "ditto", "eevee", "vaporeon",
+            "jolteon", "flareon", "porygon", "omanyte", "omastar", "kabuto", "kabutops", "aerodactyl", "snorlax", "articuno",
+            "zapdos", "moltres", "dratini", "dragonair", "dragonite", "mewtwo", "mew", "chikorita", "bayleef", "meganium",
+            "cyndaquil", "quilava", "typhlosion", "totodile", "croconaw", "feraligatr", "sentret", "furret", "hoothoot", "noctowl",
+            "ledyba", "ledian", "spinarak", "ariados", "crobat", "chinchou", "lanturn", "pichu", "cleffa", "igglybuff", "togepi",
+            "togetic", "natu", "xatu", "mareep", "flaaffy", "ampharos", "bellossom", "marill", "azumarill", "sudowoodo", "politoed",
+            "hoppip", "skiploom", "jumpluff", "aipom", "sunkern", "sunflora", "yanma", "wooper", "quagsire", "espeon", "umbreon",
+            "murkrow", "slowking", "misdreavus", "unown", "wobbuffet", "girafarig", "pineco", "forretress", "dunsparce",
+            "gligar", "steelix", "snubbull", "granbull", "qwilfish", "scizor", "shuckle", "heracross", "sneasel", "teddiursa",
+            "ursaring", "slugma", "magcargo", "swinub", "piloswine", "corsola", "remoraid", "octillery", "delibird", "mantine",
+            "skarmory", "houndour", "houndoom", "kingdra", "phanpy", "donphan", "porygon2", "stantler", "smeargle", "tyrogue",
+            "hitmontop", "smoochum", "elekid", "magby", "miltank", "blissey", "raikou", "entei", "suicune", "larvitar", "pupitar",
+            "tyranitar", "lugia", "ho-oh", "celebi", "treecko", "grovyle", "sceptile", "torchic", "combusken", "blaziken",
+            "mudkip", "marshtomp", "swampert", "poochyena", "mightyena", "zigzagoon", "linoone", "wurmple", "silcoon", "beautifly",
+            "cascoon", "dustox", "lotad", "lombre", "ludicolo", "seedot", "nuzleaf", "shiftry", "taillow", "swellow", "wingull",
+            "pelipper", "ralts", "kirlia", "gardevoir", "surskit", "masquerain", "shroomish", "breloom", "slakoth", "vigoroth",
+            "slaking", "nincada", "ninjask", "shedinja", "whismur", "loudred", "exploud", "makuhita", "hariyama", "azurill",
+            "nosepass", "skitty", "delcatty", "sableye", "mawile", "aron", "lairon", "aggron", "meditite", "medicham", "electrike",
+            "manectric", "plusle", "minun", "volbeat", "illumise", "roselia", "gulpin", "swalot", "carvanha", "sharpedo",
+            "wailmer", "wailord", "numel", "camerupt", "torkoal", "spoink", "grumpig", "spinda", "trapinch", "vibrava", "flygon",
+            "cacnea", "cacturne", "swablu", "altaria", "zangoose", "seviper", "lunatone", "solrock", "barboach", "whiscash",
+            "corphish", "crawdaunt", "baltoy", "claydol", "lileep", "cradily", "anorith", "armaldo", "feebas", "milotic",
+            "castform", "kecleon", "shuppet", "banette", "duskull", "dusclops", "tropius", "chimecho", "absol", "wynaut",
+            "snorunt", "glalie", "spheal", "sealeo", "walrein", "clamperl", "huntail", "gorebyss", "relicanth", "luvdisc",
+            "bagon", "shelgon", "salamence", "beldum", "metang", "metagross", "regirock", "regice", "registeel", "latias",
+            "latios", "kyogre", "groudon", "rayquaza", "jirachi", "deoxys-normal", "turtwig", "grotle", "torterra", "chimchar",
+            "monferno", "infernape", "piplup", "prinplup", "empoleon", "starly", "staravia", "staraptor", "bidoof", "bibarel",
+            "kricketot", "kricketune", "shinx", "luxio", "luxray", "budew", "roserade", "cranidos", "rampardos", "shieldon",
+            "bastiodon", "burmy", "wormadam-plant", "mothim", "combee", "vespiquen", "pachirisu", "buizel", "floatzel",
+            "cherubi", "cherrim", "shellos", "gastrodon", "ambipom", "drifloon", "drifblim", "buneary", "lopunny", "mismagius",
+            "honchkrow", "glameow", "purugly", "chingling", "stunky", "skuntank", "bronzor", "bronzong", "bonsly", "mime-jr",
+            "happiny", "chatot", "spiritomb", "gible", "gabite", "garchomp", "munchlax", "riolu", "lucario", "hippopotas",
+            "hippowdon", "skorupi", "drapion", "croagunk", "toxicroak", "carnivine", "finneon", "lumineon", "mantyke", "snover",
+            "abomasnow", "weavile", "magnezone", "lickilicky", "rhyperior", "tangrowth", "electivire", "magmortar", "togekiss",
+            "yanmega", "leafeon", "glaceon", "gliscor", "mamoswine", "porygon-z", "gallade", "probopass", "dusknoir", "froslass",
+            "rotom", "uxie", "mesprit", "azelf", "dialga", "palkia", "heatran", "regigigas", "giratina-altered", "cresselia",
+            "phione", "manaphy", "darkrai", "shaymin-land", "arceus", "victini", "snivy", "servine", "serperior", "tepig",
+            "pignite", "emboar", "oshawott", "dewott", "samurott", "patrat", "watchog", "lillipup", "herdier", "stoutland",
+            "purrloin", "liepard", "pansage", "simisage", "pansear", "simisear", "panpour", "simipour", "munna", "musharna",
+            "pidove", "tranquill", "unfezant", "blitzle", "zebstrika", "roggenrola", "boldore", "gigalith", "woobat", "swoobat",
+            "drilbur", "excadrill", "audino", "timburr", "gurdurr", "conkeldurr", "tympole", "palpitoad", "seismitoad", "throh",
+            "sawk", "sewaddle", "swadloon", "leavanny", "venipede", "whirlipede", "scolipede", "cottonee", "whimsicott",
+            "petilil", "lilligant", "basculin-red-striped", "sandile", "krokorok", "krookodile", "darumaka", "darmanitan-standard",
+            "maractus", "dwebble", "crustle", "scraggy", "scrafty", "sigilyph", "yamask", "cofagrigus", "tirtouga", "carracosta",
+            "archen", "archeops", "trubbish", "garbodor", "zorua", "zoroark", "minccino", "cinccino", "gothita", "gothorita",
+            "gothitelle", "solosis", "duosion", "reuniclus", "ducklett", "swanna", "vanillite", "vanillish", "vanilluxe", "deerling",
+            "sawsbuck", "emolga", "karrablast", "escavalier", "foongus", "amoonguss", "frillish", "jellicent", "alomomola",
+            "joltik", "galvantula", "ferroseed", "ferrothorn", "klink", "klang", "klinklang", "tynamo", "eelektrik", "eelektross",
+            "elgyem", "beheeyem", "litwick", "lampent", "chandelure", "axew", "fraxure", "haxorus", "cubchoo", "beartic",
+            "cryogonal", "shelmet", "accelgor", "stunfisk", "mienfoo", "mienshao", "druddigon", "golett", "golurk", "pawniard",
+            "bisharp", "bouffalant", "rufflet", "braviary", "vullaby", "mandibuzz", "heatmor", "durant", "deino", "zweilous",
+            "hydreigon", "larvesta", "volcarona", "cobalion", "terrakion", "virizion", "tornadus-incarnate", "thundurus-incarnate",
+            "reshiram", "zekrom", "landorus-incarnate", "kyurem", "keldeo-ordinary", "meloetta-aria", "genesect", "chespin",
+            "quilladin", "chesnaught", "fennekin", "braixen", "delphox", "froakie", "frogadier", "greninja", "bunnelby",
+            "diggersby", "fletchling", "fletchinder", "talonflame", "scatterbug", "spewpa", "vivillon", "litleo", "pyroar",
+            "flabebe", "floette", "florges", "skiddo", "gogoat", "pancham", "pangoro", "furfrou", "espurr", "meowstic-male",
+            "honedge", "doublade", "aegislash-shield", "spritzee", "aromatisse", "swirlix", "slurpuff", "inkay", "malamar",
+            "binacle", "barbaracle", "skrelp", "dragalge", "clauncher", "clawitzer", "helioptile", "heliolisk", "tyrunt",
+            "tyrantrum", "amaura", "aurorus", "sylveon", "hawlucha", "dedenne", "carbink", "goomy", "sliggoo", "goodra",
+            "klefki", "phantump", "trevenant", "pumpkaboo-average", "gourgeist-average", "bergmite", "avalugg", "noibat",
+            "noivern", "xerneas", "yveltal", "zygarde-50", "diancie", "hoopa", "volcanion", "rowlet", "dartrix", "decidueye",
+            "litten", "torracat", "incineroar", "popplio", "brionne", "primarina", "pikipek", "trumbeak", "toucannon",
+            "yungoos", "gumshoos", "grubbin", "charjabug", "vikavolt", "crabrawler", "crabominable", "oricorio-baile",
+            "cutiefly", "ribombee", "rockruff", "lycanroc-midday", "wishiwashi-solo", "mareanie", "toxapex", "mudbray",
+            "mudsdale", "dewpider", "araquanid", "fomantis", "lurantis", "morelull", "shiinotic", "salandit", "salazzle",
+            "stufful", "bewear", "bounsweet", "steenee", "tsareena", "comfey", "oranguru", "passimian", "wimpod", "golisopod",
+            "sandygast", "palossand", "pyukumuku", "type-null", "silvally", "minior-red-meteor", "komala", "turtonator",
+            "togedemaru", "mimikyu-disguised", "bruxish", "drampa", "dhelmise", "jangmo-o", "hakamo-o", "kommo-o", "tapu-koko",
+            "tapu-lele", "tapu-bulu", "tapu-fini", "cosmog", "cosmoem", "solgaleo", "lunala", "nihilego", "buzzwole",
+            "pheromosa", "xurkitree", "celesteela", "kartana", "guzzlord", "necrozma", "magearna", "marshadow", "poipole",
+            "naganadel", "stakataka", "blacephalon", "zeraora", "meltan", "melmetal", "grookey", "thwackey", "rillaboom",
+            "scorbunny", "raboot", "cinderace", "sobble", "drizzile", "inteleon", "skwovet", "greedent", "rookidee", "corvisquire",
+            "corviknight", "blipbug", "dottler", "orbeetle", "nickit", "thievul", "gossifleur", "eldegoss", "wooloo", "dubwool",
+            "chewtle", "drednaw", "yamper", "boltund", "rolycoly", "carkol", "coalossal", "applin", "flapple", "appletun",
+            "silicobra", "sandaconda", "cramorant", "arrokuda", "baraskewda", "toxel", "toxtricity-amped", "sizzlipede",
+            "centiskorch", "clobbopus", "grapploct", "sinistea", "polteageist", "hatenna", "hattrem", "hatterene", "impidimp",
+            "morgrem", "grimmsnarl", "obstagoon", "perrserker", "cursola", "sirfetchd", "mr-rime", "runerigus", "milcery",
+            "alcremie", "falinks", "pincurchin", "snom", "frosmoth", "stonjourner", "eiscue-ice", "indeedee-male", "morpeko-full-belly",
+            "cufant", "copperajah", "dracozolt", "arctozolt", "dracovish", "arctovish", "duraludon", "dreepy", "drakloak",
+            "dragapult", "zacian", "zamazenta", "eternatus", "kubfu", "urshifu-single-strike", "zarude", "regieleki", "regidrago",
+            "glastrier", "spectrier", "calyrex", "wyrdeer", "kleavor", "ursaluna", "basculegion-male", "sneasler", "overqwil",
+            "enamorus-incarnate", "sprigatito", "floragato", "meowscarada", "fuecoco", "crocalor", "skeledirge", "quaxly",
+            "quaxwell", "quaquaval", "lechonk", "oinkologne", "tarountula", "spidops", "nymble", "lokix", "pawmi", "pawmo",
+            "pawmot", "tandemaus", "maushold", "fidough", "dachsbun", "smoliv", "dolliv", "arboliva", "squawkabilly", "nacli",
+            "naclstack", "garganacl", "charcadet", "armarouge", "ceruledge", "tadbulb", "bellibolt", "wattrel", "kilowattrel",
+            "maschiff", "mabosstiff", "shroodle", "grafaiai", "bramblin", "brambleghast", "toedscool", "toedscruel", "klawf",
+            "capsakid", "scovillain", "rellor", "rabsca", "flittle", "espathra", "tinkatink", "tinkatuff", "tinkaton", "wiglett",
+            "wugtrio", "bombirdier", "finizen", "palafin", "varoom", "revavroom", "cyclizar", "orthworm", "glimmet", "glimmora",
+            "greavard", "houndstone", "flamigo", "cetoddle", "cetitan", "veluza", "dondozo", "tatsugiri", "annihilape", "clodsire",
+            "farigiraf", "dudunsparce", "kingambit", "great-tusk", "scream-tail", "brute-bonnet", "flutter-mane", "slither-wing",
+            "sandy-shocks", "iron-treads", "iron-bundle", "iron-hands", "iron-jugulis", "iron-moth", "iron-thorns", "frigibax",
+            "arctibax", "baxcalibur", "gimmighoul", "gholdengo", "wo-chien", "chien-pao", "ting-lu", "chi-yu", "roaring-moon",
+            "iron-valiant", "koraidon", "miraidon", "walking-wake", "iron-leaves", "dipplin", "poltchageist", "sinistcha",
+            "okidogi", "munkidori", "fezandipiti", "ogerpon", "archaludon", "hydrapple", "gouging-fire", "raging-bolt",
+            "iron-boulder", "iron-crown", "terapagos", "pecharunt"
+        ];
+
+        /* =============================================
+           App Logic (previously script.js)
+           ============================================= */
+        const BASE_URL = 'https://pokeapi.co/api/v2';
+        let currentPokemon = null; let currentIsShiny = false;
+        let statsChartInstance = null; const pokeCache = new Map();
+        let currentFocus = -1;
+
+        // Colors mapping
+        const TYPE_COLORS = {
+            normal: '#A8A77A', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C', grass: '#7AC74C', ice: '#96D9D6',
+            fighting: '#C22E28', poison: '#A33EA1', ground: '#E2BF65', flying: '#A98FF3', psychic: '#F95587', bug: '#A6B91A',
+            rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC', dark: '#705848', steel: '#B7B7CE', fairy: '#D685AD'
+        };
+
+        // DOM Refs
+        const ui = {
+            searchInp: document.getElementById('searchInput'), searchBtn: document.getElementById('searchBtn'),
+            clearBtn: document.getElementById('clearSearchBtn'), randomBtn: document.getElementById('randomBtn'),
+            suggestBox: document.getElementById('suggestionsList'), chips: document.querySelectorAll('.chip'),
+            loading: document.getElementById('loadingState'), error: document.getElementById('errorState'),
+            result: document.getElementById('resultState'), errorBtn: document.getElementById('errorRetryBtn'),
+            pokeId: document.getElementById('pokeId'), pokeName: document.getElementById('pokeName'),
+            pokeGenus: document.getElementById('pokeGenus'), pokeVarieties: document.getElementById('pokeVarieties'),
+            heroBg: document.getElementById('heroBg'), pokeImg: document.getElementById('pokeImg'),
+            pokeTypes: document.getElementById('pokeTypes'), pokeFlavor: document.getElementById('pokeFlavor'),
+            pokeHeight: document.getElementById('pokeHeight'), pokeWeight: document.getElementById('pokeWeight'),
+            pokeAbilities: document.getElementById('pokeAbilities'), prevBtn: document.getElementById('prevBtn'),
+            nextBtn: document.getElementById('nextBtn'), prevNum: document.getElementById('prevNum'),
+            nextNum: document.getElementById('nextNum'), cryBtn: document.getElementById('cryBtn'),
+            shinyBtn: document.getElementById('shinyBtn'), genderBtn: document.getElementById('genderBtn'),
+            tabs: document.querySelectorAll('.tab-btn'), tabContents: document.querySelectorAll('.tab-content'),
+            statsChart: document.getElementById('statsChart'), statTotal: document.getElementById('statTotal'),
+            evoChain: document.getElementById('evoChain'), weakList: document.getElementById('weaknessList'),
+            resList: document.getElementById('resistanceList'), movesList: document.getElementById('movesList'),
+            locsList: document.getElementById('locsList'), typeDrawer: document.getElementById('typeDrawer'),
+            typeModalTitle: document.getElementById('typeModalTitle'), typeModalBody: document.getElementById('typeModalBody'),
+            typeModalLoading: document.getElementById('typeModalLoading'), closeTypeBtn: document.getElementById('closeTypeBtn'),
+            historyBtn: document.getElementById('historyBtn'), historyDrawer: document.getElementById('historyDrawer'),
+            historyList: document.getElementById('historyList'), closeHistory: document.getElementById('closeHistoryBtn'),
+            clearHistory: document.getElementById('clearHistoryBtn'), favBtn: document.getElementById('favBtn'),
+            favoritesBtn: document.getElementById('favoritesBtn'), favoritesDrawer: document.getElementById('favoritesDrawer'),
+            favoritesList: document.getElementById('favoritesList'), closeFavorites: document.getElementById('closeFavoritesBtn'),
+            clearFavorites: document.getElementById('clearFavoritesBtn'), abilityDrawer: document.getElementById('abilityDrawer'),
+            abilityModalTitle: document.getElementById('abilityModalTitle'), abilityModalBody: document.getElementById('abilityModalBody'),
+            closeAbilityBtn: document.getElementById('closeAbilityBtn'), filterBtn: document.getElementById('filterBtn'),
+            filterPanel: document.getElementById('filterPanel'), filterTypePills: document.getElementById('filterTypePills'),
+            applyFilterBtn: document.getElementById('applyFilterBtn'), clearFilterBtn: document.getElementById('clearFilterBtn'),
+            filterSort: document.getElementById('filterSort'), filterDrawer: document.getElementById('filterDrawer'),
+            filterDrawerTitle: document.getElementById('filterDrawerTitle'), filterLoading: document.getElementById('filterLoading'),
+            filterResults: document.getElementById('filterResults'), closeFilterDrawerBtn: document.getElementById('closeFilterDrawerBtn')
+        };
+
+        // Utility: Debounce & Fetch Timeout
+        function debounce(func, delay) {
+            let timeout;
+            return function (...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); };
+        }
+
+        async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(id); return response;
+            } catch (err) {
+                clearTimeout(id); throw err;
+            }
+        }
+
+        // Apply Dynamic Theme
+        function setThemeColor(type) {
+            const hex = TYPE_COLORS[type] || '#3498db';
+            document.documentElement.style.setProperty('--accent', hex);
+        }
+
+        // Holographic Card 3D Tilt Logic
+        function initCardTilt() {
+            const card = document.getElementById('mainCard');
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+                const centerX = rect.width / 2; const centerY = rect.height / 2;
+                // Subtle rotation up to 4 degrees
+                const rotateX = ((y - centerY) / centerY) * -4; 
+                const rotateY = ((x - centerX) / centerX) * 4;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+            });
+        }
+
+        // Update Document Title and Meta tags dynamically for SEO
+        function updateSEOData(poke) {
+            const properName = poke.name.charAt(0).toUpperCase() + poke.name.slice(1);
+            
+            // 1. Update Title
+            document.getElementById('pageTitle').textContent = `${properName} Stats & Evolutions | Advanced Pokédex`;
+            
+            // 2. Update Meta Description
+            const metaDesc = document.getElementById('metaDescription');
+            if (metaDesc) {
+                const typesStr = poke.types.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join('/');
+                metaDesc.setAttribute('content', `View base stats, weaknesses, locations, and evolutions for ${properName} (${typesStr} type). ${poke.flavor}`);
+            }
+        }
+
+        /* Init & Events */
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHistoryUI(); loadFavoritesUI(); initFilterPanel(); initCardTilt(); setupDrawerFocusTraps();
+            
+            // SEO Routing Initial Load
+            const params = new URLSearchParams(window.location.search);
+            const pokeParam = params.get('p');
+            // We pass true to "skipHistory" so it doesn't push a new state upon initial direct link entry
+            searchPokemon(pokeParam || 1, true); 
+        });
+
+        // SEO Routing Navigation (Browser Back/Forward buttons)
+        window.addEventListener('popstate', (e) => {
+            const params = new URLSearchParams(window.location.search);
+            const pokeParam = params.get('p');
+            searchPokemon(pokeParam || 1, true);
+        });
+
+        ui.searchBtn.addEventListener('click', () => submitSearch());
+        ui.randomBtn.addEventListener('click', () => searchPokemon(Math.floor(Math.random() * 1025) + 1));
+        ui.searchInp.addEventListener('keypress', e => { if (e.key === 'Enter') submitSearch(); });
+        ui.errorBtn.addEventListener('click', () => { ui.searchInp.value = ''; ui.searchInp.focus(); });
+        ui.chips.forEach(chip => chip.addEventListener('click', () => searchPokemon(chip.dataset.id)));
+        ui.closeTypeBtn.addEventListener('click', () => ui.typeDrawer.classList.add('hidden'));
+        ui.typeDrawer.addEventListener('click', (e) => { if (e.target === ui.typeDrawer) ui.typeDrawer.classList.add('hidden'); });
+
+        ui.searchInp.addEventListener('input', () => {
+            ui.clearBtn.classList.toggle('hidden', ui.searchInp.value.trim().length === 0);
+        });
+        ui.clearBtn.addEventListener('click', () => {
+            ui.searchInp.value = ''; ui.clearBtn.classList.add('hidden'); ui.suggestBox.classList.add('hidden'); ui.searchInp.focus();
+        });
+
+        function submitSearch() {
+            const q = ui.searchInp.value.trim().toLowerCase();
+            if (q) searchPokemon(q);
+            ui.suggestBox.classList.add('hidden'); ui.clearBtn.classList.add('hidden');
+        }
+
+        ui.searchInp.addEventListener('input', debounce((e) => {
+            const val = e.target.value.toLowerCase().trim();
+            ui.suggestBox.innerHTML = ''; currentFocus = -1;
+            if (!val) { ui.suggestBox.classList.add('hidden'); return; }
+
+            const matches = POKEMON_NAMES.filter(n => n.startsWith(val)).slice(0, 6);
+            if (matches.length > 0) {
+                matches.forEach(name => {
+                    const idx = POKEMON_NAMES.indexOf(name) + 1;
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${name}</span> <span class="suggest-id">#${idx}</span>`;
+                    li.addEventListener('click', () => { ui.searchInp.value = name; submitSearch(); });
+                    ui.suggestBox.appendChild(li);
+                });
+                ui.suggestBox.classList.remove('hidden');
+            } else { ui.suggestBox.classList.add('hidden'); }
+        }, 300));
+
+        ui.searchInp.addEventListener('keydown', (e) => {
+            const list = ui.suggestBox.querySelectorAll('li');
+            if (ui.suggestBox.classList.contains('hidden') || list.length === 0) return;
+            if (e.key === 'ArrowDown') { currentFocus++; addActive(list); }
+            else if (e.key === 'ArrowUp') { currentFocus--; addActive(list); }
+            else if (e.key === 'Enter') { e.preventDefault(); if (currentFocus > -1) list[currentFocus].click(); else submitSearch(); }
+        });
+
+        function addActive(list) {
+            if (!list) return;
+            list.forEach(i => i.classList.remove('active'));
+            if (currentFocus >= list.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = list.length - 1;
+            list[currentFocus].classList.add('active');
+            list[currentFocus].scrollIntoView({ block: "nearest" });
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-wrapper')) ui.suggestBox.classList.add('hidden');
+        });
+
+        ui.shinyBtn.addEventListener('click', () => {
+            if (!currentPokemon) return;
+            currentIsShiny = !currentIsShiny;
+            ui.shinyBtn.classList.toggle('active-shiny', currentIsShiny);
+            ui.pokeImg.src = currentIsShiny ? currentPokemon.shinyImg : currentPokemon.img;
+        });
+
+        ui.cryBtn.addEventListener('click', () => {
+            if (!currentPokemon || !currentPokemon.cries) return;
+            const audio = new Audio(currentPokemon.cries.latest || currentPokemon.cries.legacy);
+            ui.cryBtn.classList.add('playing'); audio.volume = 0.4; audio.play();
+            audio.onended = () => ui.cryBtn.classList.remove('playing');
+        });
+
+        ui.prevBtn.addEventListener('click', () => { if (currentPokemon?.id > 1) searchPokemon(currentPokemon.id - 1); });
+        ui.nextBtn.addEventListener('click', () => { if (currentPokemon?.id < 1025) searchPokemon(currentPokemon.id + 1); });
+
+        ui.tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                ui.tabs.forEach(t => t.classList.remove('active'));
+                ui.tabContents.forEach(c => c.classList.remove('active'));
+                tab.classList.add('active'); document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        /* Core Fetch */
+        async function searchPokemon(query, skipHistory = false) {
+            ui.suggestBox.classList.add('hidden'); currentFocus = -1;
+            showState('loading');
+
+            const cacheKey = query.toString().toLowerCase();
+            if (pokeCache.has(cacheKey)) {
+                loadFromCache(pokeCache.get(cacheKey), skipHistory); return;
+            }
+
+            try {
+                // Fetch with resilient 8 second timeout
+                const res = await fetchWithTimeout(`${BASE_URL}/pokemon/${query}`);
+                if (!res.ok) throw new Error(res.status === 404 ? '404' : 'network');
+                const data = await res.json();
+                
+                const speciesRes = await fetchWithTimeout(data.species.url);
+                const speciesData = await speciesRes.json();
+
+                const genusObj = speciesData.genera.find(g => g.language.name === 'en');
+                const flavorObj = speciesData.flavor_text_entries.find(f => f.language.name === 'en');
+                const typesStr = data.types.map(t => t.type.name);
+
+                currentPokemon = {
+                    id: data.id, name: data.name, genus: genusObj ? genusObj.genus : 'Unknown Pokémon',
+                    flavor: flavorObj ? flavorObj.flavor_text.replace(/[\n\f]/g, ' ') : 'No data available.',
+                    height: `${data.height / 10} m`, weight: `${data.weight / 10} kg`,
+                    abilities: data.abilities.map(a => a.ability.name.replace(/-/g, ' ')).join(', '),
+                    abilityNames: data.abilities.map(a => ({ name: a.ability.name, isHidden: a.is_hidden })),
+                    types: typesStr, primaryType: typesStr[0],
+                    img: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
+                    shinyImg: data.sprites.other['official-artwork'].front_shiny || data.sprites.front_shiny,
+                    femaleImg: data.sprites.other['official-artwork'].front_female || null,
+                    hasFemale: !!(data.sprites.other['official-artwork'].front_female),
+                    cries: data.cries, stats: data.stats.map(s => s.base_stat),
+                    evoChainUrl: speciesData.evolution_chain.url, varieties: speciesData.varieties, moves: data.moves
+                };
+
+                pokeCache.set(currentPokemon.id.toString(), currentPokemon);
+                pokeCache.set(currentPokemon.name.toLowerCase(), currentPokemon);
+                loadFromCache(currentPokemon, skipHistory);
+            } catch (err) {
+                showState('error');
+                if (err.name === 'AbortError') {
+                    document.getElementById('errorTitle').textContent = 'API Timeout';
+                    document.getElementById('errorMsg').textContent = 'The Pokémon servers are taking too long. Try again!';
+                } else if (err.message === '404') {
+                    document.getElementById('errorTitle').textContent = 'Pokémon not found';
+                    document.getElementById('errorMsg').textContent = 'Check your spelling or ID number.';
+                } else {
+                    document.getElementById('errorTitle').textContent = 'Connection Error';
+                    document.getElementById('errorMsg').textContent = 'Could not connect to PokéAPI.';
+                }
+            }
+        }
+
+        function loadFromCache(poke, skipHistory = false) {
+            currentPokemon = poke;
+            currentIsShiny = false; ui.shinyBtn.classList.remove('active-shiny');
+            setThemeColor(poke.primaryType);
+            renderMainGrid(poke); renderRadarChart(poke.stats, poke.primaryType);
+            calculateWeaknesses(poke.types); fetchEvolutionChain(poke.evoChainUrl); fetchLocations(poke.id);
+            saveToHistory(poke); showState('result'); ui.searchInp.value = '';
+            
+            // Dynamic SEO Data application
+            updateSEOData(poke);
+
+            // Update Browser URL so the page is shareable
+            if (!skipHistory) {
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('p', poke.name);
+                window.history.pushState({ p: poke.name }, '', newUrl);
+            }
+        }
+
+        function showState(s) {
+            ui.loading.classList.add('hidden'); ui.error.classList.add('hidden'); ui.result.classList.add('hidden');
+            if (s === 'loading') ui.loading.classList.remove('hidden');
+            if (s === 'error') ui.error.classList.remove('hidden');
+            if (s === 'result') ui.result.classList.remove('hidden');
+        }
+
+        function renderMainGrid(poke) {
+            ui.pokeId.textContent = `#${String(poke.id).padStart(3, '0')}`;
+            ui.pokeName.textContent = poke.name; ui.pokeGenus.textContent = poke.genus;
+            ui.pokeFlavor.textContent = `"${poke.flavor}"`; ui.pokeHeight.textContent = poke.height; ui.pokeWeight.textContent = poke.weight;
+
+            if (poke.abilityNames) {
+                ui.pokeAbilities.innerHTML = `<div class="ability-chips">${poke.abilityNames.map(a => `<button class="ability-chip" onclick="openAbilityModal('${a.name}')"${a.isHidden ? ' title="Hidden Ability"' : ''}>${a.name.replace(/-/g, ' ')}${a.isHidden ? ' <span class="ability-hidden-tag">Hidden</span>' : ''}</button>`).join('')}</div>`;
+            } else { ui.pokeAbilities.innerHTML = poke.abilities; }
+
+            const favd = isFavorite(poke.id); ui.favBtn.innerHTML = favd ? '&#9829;' : '&#9825;'; ui.favBtn.classList.toggle('active', favd);
+
+            ui.genderBtn.classList.toggle('hidden', !poke.hasFemale); ui.genderBtn.classList.remove('active-female');
+            let showingFemale = false;
+            ui.genderBtn.onclick = () => {
+                if (!currentPokemon || !currentPokemon.hasFemale) return;
+                showingFemale = !showingFemale; ui.genderBtn.classList.toggle('active-female', showingFemale);
+                ui.pokeImg.src = showingFemale ? (currentIsShiny ? (currentPokemon.femaleImg || currentPokemon.shinyImg) : currentPokemon.femaleImg) : (currentIsShiny ? currentPokemon.shinyImg : currentPokemon.img);
+            };
+
+            ui.pokeImg.classList.add('loading');
+            
+            // Dynamic image alt tags for accessibility and image indexing
+            ui.pokeImg.alt = `Official high-resolution artwork of ${poke.name}`;
+            
+            // Adding a robust onerror fallback to a generic pokeball if artwork breaks
+            ui.pokeImg.onerror = function() { this.onerror=null; this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'; };
+            ui.pokeImg.src = poke.img;
+            ui.pokeImg.onload = () => ui.pokeImg.classList.remove('loading');
+
+            ui.pokeTypes.innerHTML = poke.types.map(t => `<span class="type-badge" style="background:var(--t-${t}); cursor:pointer;" onclick="openTypeModal('${t}')">${t}</span>`).join('');
+            
+            if (poke.varieties && poke.varieties.length > 1) {
+                const formMap = { 'alola': 'Alolan', 'galar': 'Galarian', 'hisui': 'Hisuian', 'mega': 'Mega', 'gmax': 'Gigantamax', 'origin': 'Origin' };
+                ui.pokeVarieties.innerHTML = poke.varieties.map(v => {
+                    const isCurrent = v.pokemon.name === poke.name;
+                    let label = 'Base Form';
+                    const suffix = v.pokemon.name.replace(poke.name.split('-')[0] + '-', '');
+                    if (suffix && suffix !== v.pokemon.name) label = formMap[suffix] || (suffix.charAt(0).toUpperCase() + suffix.slice(1));
+                    return `<button class="variety-btn ${isCurrent ? 'active' : ''}" onclick="searchPokemon('${v.pokemon.name}')">${label}</button>`;
+                }).join('');
+            } else { ui.pokeVarieties.innerHTML = ''; }
+
+            renderMoves(poke.moves);
+            ui.prevNum.textContent = poke.id > 1 ? `#${String(poke.id - 1).padStart(3, '0')}` : '';
+            ui.nextNum.textContent = poke.id < 1025 ? `#${String(poke.id + 1).padStart(3, '0')}` : '';
+            ui.prevBtn.disabled = poke.id <= 1; ui.nextBtn.disabled = poke.id >= 1025;
+        }
+
+        function renderRadarChart(stats, type) {
+            const hexHex = TYPE_COLORS[type] || '#fff';
+            ui.statTotal.textContent = stats.reduce((a, b) => a + b, 0);
+            if (statsChartInstance) statsChartInstance.destroy();
+            statsChartInstance = new Chart(ui.statsChart.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: ['HP', 'Attack', 'Defense', 'Sp. Atk', 'Sp. Def', 'Speed'],
+                    datasets: [{ data: stats, backgroundColor: `${hexHex}44`, borderColor: hexHex, borderWidth: 2, pointBackgroundColor: hexHex, pointBorderColor: '#fff', pointHoverRadius: 6 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { r: { angleLines: { color: 'rgba(255, 255, 255, 0.1)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, pointLabels: { color: '#8b94b0', font: { family: 'Outfit', size: 10, weight: 600 } }, ticks: { display: false }, suggestedMin: 0, suggestedMax: 150 } }, plugins: { legend: { display: false } } }
+            });
+        }
+
+        const TYPE_CHART = {
+            normal: { weakTo: ['fighting'], resist: [], immune: ['ghost'] },
+            fire: { weakTo: ['water', 'ground', 'rock'], resist: ['fire', 'grass', 'ice', 'bug', 'steel', 'fairy'], immune: [] },
+            water: { weakTo: ['electric', 'grass'], resist: ['fire', 'water', 'ice', 'steel'], immune: [] },
+            electric: { weakTo: ['ground'], resist: ['electric', 'flying', 'steel'], immune: [] },
+            grass: { weakTo: ['fire', 'ice', 'poison', 'flying', 'bug'], resist: ['water', 'electric', 'grass', 'ground'], immune: [] },
+            ice: { weakTo: ['fire', 'fighting', 'rock', 'steel'], resist: ['ice'], immune: [] },
+            fighting: { weakTo: ['flying', 'psychic', 'fairy'], resist: ['bug', 'rock', 'dark'], immune: [] },
+            poison: { weakTo: ['ground', 'psychic'], resist: ['grass', 'fighting', 'poison', 'bug', 'fairy'], immune: [] },
+            ground: { weakTo: ['water', 'grass', 'ice'], resist: ['poison', 'rock'], immune: ['electric'] },
+            flying: { weakTo: ['electric', 'ice', 'rock'], resist: ['grass', 'fighting', 'bug'], immune: ['ground'] },
+            psychic: { weakTo: ['bug', 'ghost', 'dark'], resist: ['fighting', 'psychic'], immune: [] },
+            bug: { weakTo: ['fire', 'flying', 'rock'], resist: ['grass', 'fighting', 'ground'], immune: [] },
+            rock: { weakTo: ['water', 'grass', 'fighting', 'ground', 'steel'], resist: ['normal', 'fire', 'poison', 'flying'], immune: [] },
+            ghost: { weakTo: ['ghost', 'dark'], resist: ['poison', 'bug'], immune: ['normal', 'fighting'] },
+            dragon: { weakTo: ['ice', 'dragon', 'fairy'], resist: ['fire', 'water', 'electric', 'grass'], immune: [] },
+            dark: { weakTo: ['fighting', 'bug', 'fairy'], resist: ['ghost', 'dark'], immune: ['psychic'] },
+            steel: { weakTo: ['fire', 'fighting', 'ground'], resist: ['normal', 'grass', 'ice', 'flying', 'psychic', 'bug', 'rock', 'dragon', 'steel', 'fairy'], immune: ['poison'] },
+            fairy: { weakTo: ['poison', 'steel'], resist: ['fighting', 'bug', 'dark'], immune: ['dragon'] }
+        };
+
+        function calculateWeaknesses(types) {
+            const multipliers = {}; for (let t in TYPE_CHART) multipliers[t] = 1;
+            types.forEach(def => {
+                if(!TYPE_CHART[def]) return;
+                TYPE_CHART[def].weakTo.forEach(atk => multipliers[atk] *= 2);
+                TYPE_CHART[def].resist.forEach(atk => multipliers[atk] *= 0.5);
+                TYPE_CHART[def].immune.forEach(atk => multipliers[atk] = 0);
+            });
+            const weak = [], resist = [];
+            for (let t in multipliers) {
+                if (multipliers[t] >= 2) weak.push({ t, mult: multipliers[t] });
+                if (multipliers[t] <= 0.5) resist.push({ t, mult: multipliers[t] });
+            }
+            const renderPills = arr => arr.length ? arr.sort((a,b)=>b.mult-a.mult).map(i => `<div class="weak-pill" style="--type-bg: var(--t-${i.t})">${i.t} <span class="mult">${i.mult===0?'Immune':i.mult+'×'}</span></div>`).join('') : '<div class="weak-pill">None</div>';
+            ui.weakList.innerHTML = renderPills(weak); ui.resList.innerHTML = renderPills(resist);
+        }
+
+        async function fetchEvolutionChain(url) {
+            ui.evoChain.innerHTML = '<div class="spinner"></div>'; ui.evoChain.classList.remove('loaded-tree');
+            try {
+                const data = await (await fetchWithTimeout(url)).json();
+                function renderEvoTree(node) {
+                    if (!node) return '';
+                    const urlParts = node.species.url.split('/'); const id = parseInt(urlParts[urlParts.length - 2]);
+                    const isActive = currentPokemon.id === id;
+                    const nodeHtml = `<div class="evo-node ${isActive ? 'active' : ''}" onclick="searchPokemon('${id}')"><img class="evo-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" loading="lazy"/><span class="evo-name">${node.species.name}</span></div>`;
+                    if (!node.evolves_to || !node.evolves_to.length) return `<div class="evo-stage">${nodeHtml}</div>`;
+                    return `<div class="evo-stage-group"><div class="evo-stage">${nodeHtml}</div><div class="evo-arrow">➡️</div><div class="evo-branches">${node.evolves_to.map(child => renderEvoTree(child)).join('')}</div></div>`;
+                }
+                ui.evoChain.innerHTML = renderEvoTree(data.chain); ui.evoChain.classList.add('loaded-tree');
+            } catch (e) { ui.evoChain.innerHTML = '<p class="text-muted">Evolution data unavailable.</p>'; }
+        }
+
+        function getHistory() { return JSON.parse(localStorage.getItem('pokedex_history')) || []; }
+        function saveToHistory(poke) {
+            let hist = getHistory().filter(h => h.id !== poke.id);
+            hist.unshift({ id: poke.id, name: poke.name, img: poke.img });
+            if (hist.length > 10) hist = hist.slice(0, 10);
+            localStorage.setItem('pokedex_history', JSON.stringify(hist)); loadHistoryUI();
+        }
+        function loadHistoryUI() {
+            const hist = getHistory();
+            ui.historyList.innerHTML = hist.length ? hist.map(h => `<div class="history-item" onclick="searchPokemon(${h.id}); document.getElementById('historyDrawer').classList.add('hidden');"><img src="${h.img}" class="hi-img" loading="lazy" /><div class="hi-info"><span class="hi-name">${h.name}</span><span class="hi-id">#${String(h.id).padStart(3, '0')}</span></div></div>`).join('') : '<p class="empty-hist">No recent searches yet.</p>';
+        }
+        ui.historyBtn.addEventListener('click', () => ui.historyDrawer.classList.remove('hidden'));
+        ui.closeHistory.addEventListener('click', () => ui.historyDrawer.classList.add('hidden'));
+        ui.historyDrawer.addEventListener('click', (e) => { if (e.target === ui.historyDrawer) ui.historyDrawer.classList.add('hidden'); });
+        ui.clearHistory.addEventListener('click', () => { localStorage.removeItem('pokedex_history'); loadHistoryUI(); });
+
+        function renderMoves(movesData) {
+            if (!movesData) return;
+            const levelMoves = movesData.filter(m => m.version_group_details.some(v => v.move_learn_method.name === 'level-up')).map(m => {
+                const latest = m.version_group_details.filter(v => v.move_learn_method.name === 'level-up').pop();
+                return { name: m.move.name, level: latest.level_learned_at };
+            }).sort((a, b) => a.level - b.level);
+            ui.movesList.innerHTML = levelMoves.length ? levelMoves.map(m => `<div class="move-row"><span class="move-lvl">${m.level}</span><span class="move-name">${m.name.replace(/-/g, ' ')}</span></div>`).join('') : '<div class="move-row">No level-up moves available.</div>';
+        }
+
+        async function openTypeModal(type) {
+            ui.typeDrawer.classList.remove('hidden'); ui.typeModalTitle.textContent = `${type} Type`;
+            ui.typeModalBody.innerHTML = ''; ui.typeModalLoading.style.display = 'block';
+            let data = pokeCache.get(`type_${type}`);
+            if (!data) {
+                try { data = await (await fetchWithTimeout(`${BASE_URL}/type/${type}`)).json(); pokeCache.set(`type_${type}`, data); }
+                catch (e) { ui.typeModalLoading.style.display = 'none'; ui.typeModalBody.innerHTML = '<p class="text-muted" style="text-align:center;">Error loading data.</p>'; return; }
+            }
+            ui.typeModalLoading.style.display = 'none';
+            ui.typeModalBody.innerHTML = data.pokemon.map(p => {
+                const id = parseInt(p.pokemon.url.split('/').slice(-2)[0]);
+                if (id > 10000) return '';
+                return `<div class="tp-card" onclick="if(currentPokemon?.id !== ${id}) searchPokemon('${id}'); document.getElementById('typeDrawer').classList.add('hidden');"><img class="tp-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" loading="lazy" /><span class="tp-name">${p.pokemon.name.replace(/-/g, ' ')}</span></div>`;
+            }).join('');
+        }
+
+        /* Compare Mode */
+        let cmpActive = false; let pokeA, pokeB, cmpChart;
+        document.getElementById('compareToggleBtn').addEventListener('click', () => {
+            cmpActive = !cmpActive; document.getElementById('compareSection').classList.toggle('visible', cmpActive);
+            document.getElementById('compareToggleBtn').classList.toggle('active', cmpActive);
+            if (cmpActive) setTimeout(() => document.getElementById('compareSection').scrollIntoView({ behavior: 'smooth' }), 50);
+        });
+        document.getElementById('closeCompareBtn').addEventListener('click', () => document.getElementById('compareToggleBtn').click());
+        document.getElementById('compareSearchBtnA').addEventListener('click', () => submitCmp('A'));
+        document.getElementById('compareSearchBtnB').addEventListener('click', () => submitCmp('B'));
+        document.getElementById('compareInputA').addEventListener('keypress', e => { if (e.key === 'Enter') submitCmp('A'); });
+        document.getElementById('compareInputB').addEventListener('keypress', e => { if (e.key === 'Enter') submitCmp('B'); });
+
+        function submitCmp(slot) {
+            const q = document.getElementById(`compareInput${slot}`).value.trim().toLowerCase();
+            if (q) fetchCmp(slot, q);
+        }
+        async function fetchCmp(slot, q) {
+            const body = document.getElementById(`cpBody${slot}`); body.innerHTML = '<div class="cp-loading"></div>';
+            try {
+                let poke = pokeCache.get(q);
+                if (!poke) {
+                    const data = await (await fetchWithTimeout(`${BASE_URL}/pokemon/${q}`)).json();
+                    poke = { id: data.id, name: data.name, types: data.types.map(t => t.type.name), img: data.sprites.other['official-artwork'].front_default || data.sprites.front_default, height: `${data.height / 10} m`, weight: `${data.weight / 10} kg`, abilities: data.abilities.map(a => a.ability.name).join(', '), stats: data.stats.map(s => s.base_stat) };
+                    pokeCache.set(poke.id.toString(), poke); pokeCache.set(poke.name, poke);
+                }
+                if (slot === 'A') pokeA = poke; else pokeB = poke;
+                body.innerHTML = `<img class="cp-hero-img" src="${poke.img}" loading="lazy"/><p class="cp-name">${poke.name}</p><div class="cp-types">${poke.types.map(t=>`<span class="cp-type-badge" style="background:${TYPE_COLORS[t]||'#888'}">${t}</span>`).join('')}</div><div class="cp-metrics"><span class="cp-metric"><strong>${poke.height}</strong> H</span><span class="cp-metric"><strong>${poke.weight}</strong> W</span></div>`;
+                renderCmpChart();
+            } catch (e) { body.innerHTML = '<div class="cp-empty" style="color:var(--red);">Not found.</div>'; }
+        }
+        function renderCmpChart() {
+            if (!pokeA || !pokeB) return;
+            document.getElementById('cmpPlaceholder').style.display = 'none'; document.getElementById('cmpChartWrap').classList.remove('hidden');
+            const cA = TYPE_COLORS[pokeA.types[0]] || '#a78bfa', cB = TYPE_COLORS[pokeB.types[0]] || '#f95587';
+            document.getElementById('cmpLegend').innerHTML = `<div class="cmp-legend-item"><span class="cmp-legend-dot" style="background:${cA}"></span>${pokeA.name}</div><div class="cmp-legend-item"><span class="cmp-legend-dot" style="background:${cB}"></span>${pokeB.name}</div>`;
+            document.getElementById('cmpTotals').innerHTML = `<strong style="color:${cA}">${pokeA.name}</strong>: ${pokeA.stats.reduce((a,b)=>a+b,0)} · <strong style="color:${cB}">${pokeB.name}</strong>: ${pokeB.stats.reduce((a,b)=>a+b,0)}`;
+            if (cmpChart) cmpChart.destroy();
+            cmpChart = new Chart(document.getElementById('compareChart').getContext('2d'), { type: 'radar', data: { labels: ['HP', 'Atk', 'Def', 'Sp.A', 'Sp.D', 'Spd'], datasets: [{ label: pokeA.name, data: pokeA.stats, borderColor: cA, backgroundColor: `${cA}33` }, { label: pokeB.name, data: pokeB.stats, borderColor: cB, backgroundColor: `${cB}33` }] }, options: { responsive: true, maintainAspectRatio: false, scales: { r: { angleLines: { color: 'rgba(255,255,255,.1)' }, grid: { color: 'rgba(255,255,255,.1)' }, ticks: { display: false } } }, plugins: { legend: { display: false } } } });
+        }
+
+        async function openAbilityModal(name) {
+            ui.abilityDrawer.classList.remove('hidden'); ui.abilityModalTitle.textContent = name.replace(/-/g, ' ');
+            ui.abilityModalBody.innerHTML = '<div class="spinner" style="margin: 60px auto;"></div>';
+            try {
+                let data = pokeCache.get(`ab_${name}`);
+                if (!data) { data = await (await fetchWithTimeout(`${BASE_URL}/ability/${name}`)).json(); pokeCache.set(`ab_${name}`, data); }
+                const en = data.effect_entries.find(e => e.language.name === 'en');
+                ui.abilityModalBody.innerHTML = `<div class="ability-body"><div><p class="ability-label">Short Effect</p><div class="ability-short">${en ? en.short_effect : 'N/A'}</div></div>${en?.effect ? `<div><p class="ability-label">Full Description</p><p class="ability-full">${en.effect}</p></div>` : ''}</div>`;
+            } catch (e) { ui.abilityModalBody.innerHTML = '<p class="text-muted">Error loading ability.</p>'; }
+        }
+        ui.closeAbilityBtn.addEventListener('click', () => ui.abilityDrawer.classList.add('hidden'));
+
+        function getFavorites() { return JSON.parse(localStorage.getItem('pokedex_favorites')) || []; }
+        function isFavorite(id) { return getFavorites().some(f => f.id === id); }
+        function toggleFavorite() {
+            if (!currentPokemon) return;
+            let favs = getFavorites();
+            if (isFavorite(currentPokemon.id)) { favs = favs.filter(f => f.id !== currentPokemon.id); ui.favBtn.innerHTML = '&#9825;'; ui.favBtn.classList.remove('active'); }
+            else { favs.unshift({ id: currentPokemon.id, name: currentPokemon.name, img: currentPokemon.img }); ui.favBtn.innerHTML = '&#9829;'; ui.favBtn.classList.add('active'); }
+            localStorage.setItem('pokedex_favorites', JSON.stringify(favs)); loadFavoritesUI();
+        }
+        function loadFavoritesUI() {
+            const favs = getFavorites();
+            ui.favoritesList.innerHTML = favs.length ? favs.map(f => `<div class="history-item" onclick="searchPokemon(${f.id}); document.getElementById('favoritesDrawer').classList.add('hidden');"><img src="${f.img}" class="hi-img" loading="lazy" /><div class="hi-info"><span class="hi-name">${f.name}</span><span class="hi-id">#${String(f.id).padStart(3, '0')}</span></div><button style="margin-left:auto; background:none; border:none; color:var(--text-muted); font-size:1.1rem; cursor:pointer;" onclick="event.stopPropagation(); removeFavorite(${f.id});">✕</button></div>`).join('') : '<p class="empty-hist">No favorites yet.</p>';
+            ui.favoritesBtn.style.color = favs.length ? '#f95587' : '';
+        }
+        function removeFavorite(id) { let favs = getFavorites().filter(f => f.id !== id); localStorage.setItem('pokedex_favorites', JSON.stringify(favs)); loadFavoritesUI(); if (currentPokemon?.id === id) { ui.favBtn.innerHTML = '&#9825;'; ui.favBtn.classList.remove('active'); } }
+        ui.favBtn.addEventListener('click', toggleFavorite); ui.favoritesBtn.addEventListener('click', () => ui.favoritesDrawer.classList.remove('hidden')); ui.closeFavorites.addEventListener('click', () => ui.favoritesDrawer.classList.add('hidden')); ui.clearFavorites.addEventListener('click', () => { localStorage.removeItem('pokedex_favorites'); loadFavoritesUI(); if (currentPokemon) { ui.favBtn.innerHTML = '&#9825;'; ui.favBtn.classList.remove('active'); } });
+
+        let fType = null, fGen = null;
+        function initFilterPanel() {
+            ui.filterTypePills.innerHTML = Object.keys(TYPE_COLORS).map(t => `<button class="ftype-pill" data-type="${t}" style="background:${TYPE_COLORS[t]}">${t}</button>`).join('');
+            ui.filterTypePills.querySelectorAll('.ftype-pill').forEach(btn => btn.addEventListener('click', () => { fType = fType === btn.dataset.type ? null : btn.dataset.type; ui.filterTypePills.querySelectorAll('.ftype-pill').forEach(b => b.classList.toggle('selected', b === btn && fType)); }));
+            document.querySelectorAll('.fgen-btn').forEach(btn => btn.addEventListener('click', () => { fGen = fGen === btn.dataset.gen ? null : btn.dataset.gen; document.querySelectorAll('.fgen-btn').forEach(b => b.classList.toggle('selected', b === btn && fGen)); }));
+            ui.filterBtn.addEventListener('click', () => { ui.filterPanel.classList.toggle('hidden'); ui.filterBtn.classList.toggle('active', !ui.filterPanel.classList.contains('hidden')); });
+            ui.applyFilterBtn.addEventListener('click', async () => {
+                if (!fType && !fGen) return alert('Select Type or Gen');
+                ui.filterDrawer.classList.remove('hidden'); ui.filterResults.innerHTML = ''; ui.filterLoading.style.display = 'block';
+                let items = [];
+                try {
+                    if (fType) { let data = pokeCache.get(`type_${fType}`); if (!data) data = await (await fetchWithTimeout(`${BASE_URL}/type/${fType}`)).json(); items = data.pokemon.map(p => ({ id: parseInt(p.pokemon.url.split('/').slice(-2)[0]), name: p.pokemon.name })).filter(p => p.id <= 10000); }
+                    else { const btn = document.querySelector(`.fgen-btn[data-gen="${fGen}"]`); for (let i = parseInt(btn.dataset.min); i <= parseInt(btn.dataset.max); i++) items.push({ id: i, name: `#${i}` }); }
+                    if (fType && fGen) { const btn = document.querySelector(`.fgen-btn[data-gen="${fGen}"]`); items = items.filter(p => p.id >= parseInt(btn.dataset.min) && p.id <= parseInt(btn.dataset.max)); }
+                    if (ui.filterSort.value === 'alpha') items.sort((a, b) => a.name.localeCompare(b.name)); else items.sort((a, b) => a.id - b.id);
+                    ui.filterDrawerTitle.textContent = `Results (${items.length})`;
+                } catch (e) {}
+                ui.filterLoading.style.display = 'none';
+                ui.filterResults.innerHTML = items.map(p => `<div class="tp-card" onclick="searchPokemon(${p.id}); document.getElementById('filterDrawer').classList.add('hidden'); document.getElementById('filterPanel').classList.add('hidden'); document.getElementById('filterBtn').classList.remove('active');"><img class="tp-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" loading="lazy" /><span class="tp-name">${p.name.replace(/-/g, ' ')}</span></div>`).join('');
+            });
+            ui.clearFilterBtn.addEventListener('click', () => { fType = fGen = null; document.querySelectorAll('.selected').forEach(e => e.classList.remove('selected')); ui.filterSort.value = ''; });
+            ui.closeFilterDrawerBtn.addEventListener('click', () => ui.filterDrawer.classList.add('hidden'));
+        }
+
+        async function fetchLocations(id) {
+            ui.locsList.innerHTML = '<div class="spinner" style="margin: 30px auto;"></div>';
+            try {
+                let data = pokeCache.get(`loc_${id}`); if (!data) { data = await (await fetchWithTimeout(`${BASE_URL}/pokemon/${id}/encounters`)).json(); pokeCache.set(`loc_${id}`, data); }
+                ui.locsList.innerHTML = data.length ? data.map(loc => `<div class="loc-item"><span class="loc-name">${loc.location_area.name.replace(/-/g, ' ')}</span><div class="loc-meta"><span>${[...new Set(loc.version_details.flatMap(v => v.encounter_details.map(e => e.method.name)))].join(', ').replace(/-/g, ' ')}</span><span style="margin-left:auto; display:flex; gap:4px; flex-wrap:wrap;">${[...new Set(loc.version_details.map(v => v.version.name))].map(v => `<span class="loc-version-tag">${v}</span>`).join('')}</span></div></div>`).join('') : '<div class="locs-empty">Cannot be caught in the wild.</div>';
+            } catch (e) { ui.locsList.innerHTML = '<div class="locs-empty">Could not load location data.</div>'; }
+        }
+
+        function setupDrawerFocusTraps() {
+            document.querySelectorAll('.drawer-overlay').forEach(o => o.addEventListener('keydown', e => {
+                if (e.key !== 'Tab') return;
+                const els = o.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                if (!els.length) return;
+                if (e.shiftKey && document.activeElement === els[0]) { els[els.length - 1].focus(); e.preventDefault(); }
+                else if (!e.shiftKey && document.activeElement === els[els.length - 1]) { els[0].focus(); e.preventDefault(); }
+            }));
+        }
+    </script>
+</body>
+</html>
